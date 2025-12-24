@@ -8,14 +8,18 @@ import lombok.NoArgsConstructor;
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
-public class UserResponseDto {
+public class UserUpdateResponseDto {
     private Long id;
     private String nickname;
     private String email;
 
-    public UserResponseDto(User user) {
+    public UserUpdateResponseDto(User user) {
         this.id = user.getId();
         this.nickname = user.getNickname();
         this.email = user.getEmail();
+    }
+
+    public static UserUpdateResponseDto of(User user){
+        return  new UserUpdateResponseDto(user.getId(), user.getNickname(), user.getEmail());
     }
 }
