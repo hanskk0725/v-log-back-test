@@ -18,4 +18,8 @@ public class UserUpdateResponseDto {
         this.nickname = user.getNickname();
         this.email = user.getEmail();
     }
+
+    public static UserUpdateResponseDto of(User user){
+        return  new UserUpdateResponseDto(user.getId(), user.getNickname(), user.getEmail());
+    }
 }

@@ -38,4 +38,6 @@ out/
 .DS_Store
 
 CLAUDE.md
-    
+.claude/
+cookies.txt
+nul

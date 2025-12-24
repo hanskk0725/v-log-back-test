@@ -3,6 +3,8 @@ package com.likelion.vlog.controller;
 
 import com.likelion.vlog.dto.auth.LoginRequestDto;
 import com.likelion.vlog.dto.auth.SignupRequestDto;
+import com.likelion.vlog.dto.common.ApiResponse;
+import com.likelion.vlog.dto.user.UserDto;
 import com.likelion.vlog.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -28,12 +30,13 @@ public class AuthController {
     private final SecurityContextRepository securityContextRepository;
 
     @PostMapping("/signup")
-    public ResponseEntity<String> signup(@RequestBody SignupRequestDto dto) {
-        return ResponseEntity.ok(authService.signup(dto));
+    public ResponseEntity<ApiResponse<UserDto>> signup(@RequestBody SignupRequestDto dto) {
+        UserDto userDto = authService.signup(dto);
+        return ResponseEntity.ok(ApiResponse.success("회원가입 성공", userDto));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody LoginRequestDto req,
+    public ResponseEntity<ApiResponse<UserDto>> login(@RequestBody LoginRequestDto req,
                                         HttpServletRequest request,
                                         HttpServletResponse response) {
         // 인증
@@ -48,11 +51,15 @@ public class AuthController {
 
         // HttpSession에 저장
         securityContextRepository.saveContext(context, request, response);
-        return ResponseEntity.ok("로그인 성공");
+
+        // 사용자 정보 조회 및 반환
+        return ResponseEntity.ok(ApiResponse.success(
+                "로그인 성공",
+                authService.getUserInfo(authentication.getName())));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<String> logout(HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<String>> logout(HttpServletRequest request) {
         HttpSession session = request.getSession(false);
 
         if (session != null) {
@@ -61,6 +68,6 @@ public class AuthController {
 
         SecurityContextHolder.clearContext();
 
-        return ResponseEntity.ok("로그아웃 성공");
+        return ResponseEntity.ok(ApiResponse.success("로그아웃 성공"));
     }
 }

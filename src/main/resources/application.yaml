@@ -3,9 +3,9 @@ spring:
     name: vlog
 
   datasource:
-    url: jdbc:mysql://localhost:13306/vlog?serverTimezone=Asia/Seoul&useSSL=false
+    url: jdbc:mysql://localhost:3306/vlog
     username: root
-    password: root1234
+    password: 1111
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:

@@ -29,4 +29,5 @@ public class Blog {
 
     private LocalDateTime created_at;
     private LocalDateTime updated_at;
+
 }
