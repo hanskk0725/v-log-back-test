@@ -33,150 +33,62 @@ public class ProjectSecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
-                .csrf(csrf -> csrf.disable())
+                .csrf(csrf -> csrf.disable());
 
-                .authorizeHttpRequests(auth -> auth
+        http.authorizeHttpRequests(auth -> auth
+                // -------------------------------------------------
+                // 1) 인증 X (Public)
+                // -------------------------------------------------
+                .requestMatchers(HttpMethod.POST,
+                        "/api/v1/auth/signup",
+                        "/api/v1/auth/login"
+                ).permitAll()
 
-                        /* ==================================================
-                           [1] 인증(Auth) - 인증 불필요
-                        ================================================== */
-                        .requestMatchers(HttpMethod.POST,
-                                "/auth/signup",     // 회원가입
-                                "/auth/login"       // 로그인
-                        ).permitAll()
+                .requestMatchers(HttpMethod.GET,
+                        "/api/v1/users/*",      // 사용자 프로필 조회
+                        "/api/v1/posts",        // 전체 게시글 조회
+                        "/api/v1/posts/*",      // 게시글 상세 조회
+                        "/api/v1/tags/*",        // 태그 이름으로 조회
+                        "/api/v1/posts/*/like"
+                ).permitAll()
 
+                // -------------------------------------------------
+                // 2) 인증 O (Authenticated)
+                // -------------------------------------------------
+                .requestMatchers(HttpMethod.POST,
+                        "/api/v1/auth/logout",
 
-                        /* ==================================================
-                           [2] 사용자(User) - 공개 조회
-                        ================================================== */
-                        .requestMatchers(HttpMethod.GET,
-                                "/users/*"          // 사용자 프로필 조회
-                        ).permitAll()
+                        "/api/v1/posts",                         // 게시글 작성
+                        "/api/v1/posts/*/comments",              // 댓글 작성
+                        "/api/v1/posts/*/comments/*/replies",    // 답글 생성
+                        "/api/v1/posts/*/like",                  // 좋아요
 
+                        "/api/v1/users/*/follow"                 // 팔로우
+                ).authenticated()
 
-                        /* ==================================================
-                           [3] 게시글(Post) - 공개 조회
-                        ================================================== */
-                        .requestMatchers(HttpMethod.GET,
-                                "/api/v1/posts",           // 전체 게시글 조회
-                                "/api/v1/posts/*"          // 게시글 상세 조회 (댓글 포함)
-                        ).permitAll()
+                .requestMatchers(HttpMethod.PUT,
+                        "/api/v1/users/*",                       // 사용자 정보 수정 (본인 검증은 별도)
+                        "/api/v1/posts/*",                       // 게시글 수정 (작성자 검증은 별도)
+                        "/api/v1/posts/*/comments/*",            // 댓글 수정 (작성자 검증은 별도)
+                        "/api/v1/posts/*/comments/*/replies/*"   // 답글 수정 (작성자 검증은 별도)
+                ).authenticated()
 
+                .requestMatchers(HttpMethod.DELETE,
+                        "/api/v1/users/*",                       // 회원 탈퇴 (본인 검증은 별도)
+                        "/api/v1/posts/*",                       // 게시글 삭제 (작성자 검증은 별도)
+                        "/api/v1/posts/*/comments/*",            // 댓글 삭제 (작성자 검증은 별도)
+                        "/api/v1/posts/*/comments/*/replies/*",  // 답글 삭제 (작성자 검증은 별도)
 
-                        /* ==================================================
-                           [4] 태그(Tag) - 공개 조회
-                        ================================================== */
-                        .requestMatchers(HttpMethod.GET,
-                                "/tags/*"           // 태그 이름으로 조회
-                        ).permitAll()
+                        "/api/v1/posts/*/like",                  // 좋아요 취소
+                        "/api/v1/users/*/follow"                 // 언팔로우
+                ).authenticated()
 
+                // -------------------------------------------------
+                // 3) 그 외 전부 차단
+                // -------------------------------------------------
+                .anyRequest().denyAll()
+        );
 
-                        /* ==================================================
-                           [5] 인증(Auth) - 로그인 필요
-                        ================================================== */
-                        .requestMatchers(HttpMethod.POST,
-                                "/auth/logout"      // 로그아웃
-                        ).authenticated()
-
-
-                        /* ==================================================
-                           [6] 사용자(User) - 본인 인증 필요
-                        ================================================== */
-                        .requestMatchers(HttpMethod.PUT,
-                                "/users/*"          // 사용자 정보 수정
-                        ).authenticated()
-
-                        .requestMatchers(HttpMethod.DELETE,
-                                "/users/*"          // 회원 탈퇴
-                        ).authenticated()
-
-
-                        /* ==================================================
-                           [7] 팔로우(Follow) - 로그인 필요
-                        ================================================== */
-                        .requestMatchers(HttpMethod.POST,
-                                "/users/*/follow"   // 팔로우
-                        ).authenticated()
-
-                        .requestMatchers(HttpMethod.DELETE,
-                                "/users/*/follow"   // 언팔로우
-                        ).authenticated()
-
-                        .requestMatchers(HttpMethod.GET,
-                                "/users/*/followers",   // 팔로워 목록
-                                "/users/*/followings"   // 팔로잉 목록
-                        ).authenticated()
-
-
-                        /* ==================================================
-                           [8] 게시글(Post) - 작성자 인증 필요
-                        ================================================== */
-                        .requestMatchers(HttpMethod.POST,
-                                "/api/v1/posts"            // 게시글 작성
-                        ).authenticated()
-
-                        .requestMatchers(HttpMethod.PUT,
-                                "/api/v1/posts/*"          // 게시글 수정
-                        ).authenticated()
-
-                        .requestMatchers(HttpMethod.DELETE,
-                                "/api/v1/posts/*"          // 게시글 삭제
-                        ).authenticated()
-
-
-                        /* ==================================================
-                           [9] 댓글(Comment) - 작성자 인증 필요
-                        ================================================== */
-                        .requestMatchers(HttpMethod.POST,
-                                "/posts/*/comments" // 댓글 작성
-                        ).authenticated()
-
-                        .requestMatchers(HttpMethod.PUT,
-                                "/posts/*/comments/*" // 댓글 수정
-                        ).authenticated()
-
-                        .requestMatchers(HttpMethod.DELETE,
-                                "/posts/*/comments/*" // 댓글 삭제
-                        ).authenticated()
-
-
-                        /* ==================================================
-                           [10] 답글(Reply) - 작성자 인증 필요
-                        ================================================== */
-                        .requestMatchers(HttpMethod.POST,
-                                "/posts/*/comments/*/replies" // 답글 생성
-                        ).authenticated()
-
-                        .requestMatchers(HttpMethod.PUT,
-                                "/posts/*/comments/*/replies/*" // 답글 수정
-                        ).authenticated()
-
-                        .requestMatchers(HttpMethod.DELETE,
-                                "/posts/*/comments/*/replies/*" // 답글 삭제
-                        ).authenticated()
-
-
-                        /* ==================================================
-                           [11] 좋아요(Like) - 로그인 필요
-                        ================================================== */
-                        .requestMatchers(HttpMethod.POST,
-                                "/api/v1/posts/*/like"     // 좋아요
-                        ).authenticated()
-
-                        .requestMatchers(HttpMethod.DELETE,
-                                "/api/v1/posts/*/like"     // 좋아요 취소
-                        ).authenticated()
-
-                        .requestMatchers(HttpMethod.GET,
-                                "/api/v1/posts/*/like"     // 좋아요 취소
-                        ).authenticated()
-
-
-                        /* ==================================================
-                           [12] 그 외 모든 요청 차단
-                        ================================================== */
-                        .anyRequest().denyAll()
-                );
 
         // SecurityContextRepository 연결 -> Spring Security가 자동으로 세션 관리
         http.securityContext(context -> context
