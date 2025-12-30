@@ -51,8 +51,8 @@ public class ProjectSecurityConfig {
 
                         // 인증 O
                         .requestMatchers(HttpMethod.GET,
-                                "/api/v1/users/**/followers", //팔로워 조회
-                                "/api/v1/users/**/followings" //팔로잉 조회
+                                "/api/v1/users/*/followers", //팔로워 조회
+                                "/api/v1/users/*/followings" //팔로잉 조회
                         ).authenticated()
 
                         .requestMatchers(HttpMethod.POST,
