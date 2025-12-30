@@ -1,5 +1,6 @@
 package com.likelion.vlog.controller;
 
+import com.likelion.vlog.dto.common.ApiResponse;
 import com.likelion.vlog.dto.like.LikeResponse;
 import com.likelion.vlog.service.LikeService;
 import lombok.RequiredArgsConstructor;
@@ -17,11 +18,11 @@ public class LikeController {
 
     // 좋아요 정보 조회
     @GetMapping
-    public ResponseEntity<LikeResponse> getLikes(
+    public ResponseEntity<ApiResponse<LikeResponse>> getLikes(
             @PathVariable Long postId,
             @AuthenticationPrincipal UserDetails userDetails) {
         LikeResponse response = likeService.getLikeInfo(userDetails.getUsername(), postId);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.success("좋아요 조회 성공", response));
     }
 
     /**
@@ -48,19 +49,19 @@ public class LikeController {
 
     // 좋아요 추가
     @PostMapping
-    public ResponseEntity<LikeResponse> addLike(
+    public ResponseEntity<ApiResponse<LikeResponse>> addLike(
             @PathVariable Long postId,
             @AuthenticationPrincipal UserDetails userDetails) {
         LikeResponse response = likeService.addLike(userDetails.getUsername(), postId);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.success("좋아요 추가 성공", response));
     }
 
     // 좋아요 삭제
     @DeleteMapping
-    public ResponseEntity<LikeResponse> removeLike(
+    public ResponseEntity<ApiResponse<LikeResponse>> removeLike(
             @PathVariable Long postId,
             @AuthenticationPrincipal UserDetails userDetails) {
         LikeResponse response = likeService.removeLike(userDetails.getUsername(), postId);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.success("좋아요 취소 성공", response));
     }
 }
