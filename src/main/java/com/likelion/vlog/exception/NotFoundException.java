@@ -2,6 +2,7 @@ package com.likelion.vlog.exception;
 
 /**
  * 리소스를 찾을 수 없을 때 발생하는 예외 (404)
+ * NotFoundExceptionType
  */
 public class NotFoundException extends RuntimeException {
 
@@ -17,8 +18,9 @@ public class NotFoundException extends RuntimeException {
         return new NotFoundException("사용자를 찾을 수 없습니다. id=" + userId);
     }
 
-    public static NotFoundException user(String email) {
-        return new NotFoundException("사용자를 찾을 수 없습니다. email=" + email);
+    public static NotFoundException user(String email) {return new NotFoundException("사용자를 찾을 수 없습니다. email=" + email);}
+    public static NotFoundException userNickname(String nickname){
+        return new NotFoundException("사용자를 찾을 수 없습니다. nickname=" + nickname);
     }
 
     public static NotFoundException blog(Long userId) {
