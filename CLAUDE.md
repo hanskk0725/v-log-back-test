@@ -40,6 +40,10 @@ docker-compose up -d  # MySQL 시작 (port 13306)
 - Hibernate DDL: `update` (스키마 자동 업데이트, 데이터 유지)
 - SQL 로깅 활성화 (format_sql, bind parameter trace)
 
+**데이터베이스 설정**:
+- 개발 환경: **로컬 MySQL 사용** (port 3306, database: vlog)
+- docker-compose.yml은 참고용 (사용 시 application.yaml 포트를 13306으로 변경 필요)
+
 ## 기술 스택
 
 Spring Boot 3.5.9 / Java 21 / JPA + QueryDSL + MySQL / Spring Security (세션 기반)
@@ -48,9 +52,9 @@ Spring Boot 3.5.9 / Java 21 / JPA + QueryDSL + MySQL / Spring Security (세션 �
 
 ```
 com.likelion.vlog
-├── config/          # ProjectSecurityConfig, appConfig
-├── controller/      # PostController, LikeController, AuthController, UserController, TagController
-├── service/         # PostService, LikeService, AuthService, UserService, TagService
+├── config/          # ProjectSecurityConfig, SwaggerConfig, JpaConfig
+├── controller/      # PostController, CommentController, LikeController, FollowController, AuthController, UserController, TagController
+├── service/         # PostService, CommentService, LikeService, FollowService, AuthService, UserService, TagService
 ├── repository/
 │   ├── querydsl/    # QueryDSL custom repositories (PostRepositoryCustom, PostRepositoryImpl)
 │   │   ├── custom/  # Custom interface & implementations
@@ -94,7 +98,7 @@ com.likelion.vlog
 
 | Method | Endpoint | 설명 | 인증 |
 |--------|----------|------|------|
-| GET | `/api/v1/posts/{postId}/like` | 좋아요 정보 조회 | O |
+| GET | `/api/v1/posts/{postId}/like` | 좋아요 정보 조회 | X (선택적) |
 | POST | `/api/v1/posts/{postId}/like` | 좋아요 추가 | O |
 | DELETE | `/api/v1/posts/{postId}/like` | 좋아요 취소 | O |
 
@@ -102,13 +106,28 @@ com.likelion.vlog
 
 | Method | Endpoint | 설명 | 인증 |
 |--------|----------|------|------|
-| GET | `/api/v1/posts/{postId}/comments` | 댓글 목록 조회 | X |
+| GET | `/api/v1/posts/{postId}/comments` | 댓글 목록 조회 (답글 포함) | X |
 | POST | `/api/v1/posts/{postId}/comments` | 댓글 작성 | O |
-| PUT | `/api/v1/posts/{postId}/comments/{id}` | 댓글 수정 | O (작성자) |
-| DELETE | `/api/v1/posts/{postId}/comments/{id}` | 댓글 삭제 | O (작성자) |
-| POST | `/api/v1/posts/{postId}/comments/{id}/replies` | 답글 작성 | O |
-| PUT | `/api/v1/posts/{postId}/comments/{id}/replies/{replyId}` | 답글 수정 | O (작성자) |
-| DELETE | `/api/v1/posts/{postId}/comments/{id}/replies/{replyId}` | 답글 삭제 | O (작성자) |
+| PUT | `/api/v1/posts/{postId}/comments/{commentId}` | 댓글 수정 | O (작성자) |
+| DELETE | `/api/v1/posts/{postId}/comments/{commentId}` | 댓글 삭제 | O (작성자) |
+| POST | `/api/v1/posts/{postId}/comments/{commentId}/replies` | 답글 작성 | O |
+| PUT | `/api/v1/posts/{postId}/comments/{commentId}/replies/{replyId}` | 답글 수정 | O (작성자) |
+| DELETE | `/api/v1/posts/{postId}/comments/{commentId}/replies/{replyId}` | 답글 삭제 | O (작성자) |
+
+### 팔로우 (`/api/v1/users/{userId}`)
+
+| Method | Endpoint | 설명 | 인증 |
+|--------|----------|------|------|
+| POST | `/api/v1/users/{userId}/follows` | 팔로우 | O |
+| DELETE | `/api/v1/users/{userId}/follows` | 언팔로우 | O |
+| GET | `/api/v1/users/{userId}/followers` | 팔로워 목록 조회 (페이징) | X |
+| GET | `/api/v1/users/{userId}/followings` | 팔로잉 목록 조회 (페이징) | X |
+
+### 태그 (`/api/v1/tags`)
+
+| Method | Endpoint | 설명 | 인증 |
+|--------|----------|------|------|
+| GET | `/api/v1/tags/{title}` | 태그 조회 | X |
 
 ## Entity 관계
 
@@ -160,58 +179,29 @@ User (1) ── (1) Blog (1) ── (*) Post ── (*) TagMap ── (1) Tag
 
 ### DTO 구조
 DTOs는 도메인별로 하위 패키지 구성:
-- `dto/auth/`: 인증 관련 (SignupRequest, LoginRequest, etc.)
-- `dto/posts/`: 게시글 관련 (PostGetRequest, PostCreateRequest, PostUpdateRequest, PostListResponse, PostResponse)
+- `dto/auth/`: 인증 관련 (SignupRequest, LoginRequest)
+- `dto/posts/`: 게시글 관련 (PostGetRequest, PostCreatePostRequest, PostUpdatePutRequest, PostListGetResponse, PostGetResponse, PageResponse)
+- `dto/comments/`: 댓글 관련 (CommentCreatePostRequest, CommentUpdatePutRequest, CommentPostResponse, CommentPutResponse, CommentWithRepliesGetResponse, ReplyCreatePostRequest, ReplyUpdatePutRequest, ReplyPostResponse, ReplyPutResponse, ReplyGetResponse)
 - `dto/like/`: 좋아요 관련 (LikeResponse)
-- `dto/users/`: 사용자 관련
-- `dto/tags/`: 태그 관련
-- `dto/comments/`: 댓글 관련
-- `dto/common/`: 공통 응답 (ApiResponse, ErrorResponse, PageResponse 등)
+- `dto/follows/`: 팔로우 관련 (FollowPostResponse, FollowDeleteResponse, FollowerGetResponse, FollowingGetResponse, PageResponse)
+- `dto/users/`: 사용자 관련 (UserGetResponse, UserUpdateRequest, UserDeleteRequest)
+- `dto/tags/`: 태그 관련 (TagGetResponse)
+- `dto/common/`: 공통 응답 (ApiResponse)
 
-**DTO 네이밍 컨벤션**: (상세: `docs/v-log-dto-convention.md`)
-- Request: `{Action}{HttpMethod}Request` (예: `CommentCreatePostRequest`)
-  - auth 범위에서는 메서드 생략 허용 (`LoginRequest`, `SignupRequest`)
-- Response: `{Resource}{HttpMethod}Response` (예: `PostGetResponse`)
-- 정적 팩토리 메서드:
-  - `from()`: 타입 변환/매핑 시 (예: `UserGetResponse.from(User user)`)
-  - `of()`: 값 조립 시 (예: `UserGetResponse.of(Long id, String nickname)`)
-- DTO 클래스 상단에 엔드포인트 주석 필수:
-  ```java
-  /**
-   * GET /users/{id} 응답 객체
-   */
-  public class UserGetResponse { ... }
-  ```
-
-**API 응답 표준**:
-- 모든 컨트롤러는 `ResponseEntity<ApiResponse<T>>` 형태로 반환
-- 성공: `ApiResponse.success(message, data)` 또는 `ApiResponse.success(message)`
-- 실패: `ApiResponse.error(message)`
-- 예시:
-  ```java
-  // 데이터 있음
-  return ResponseEntity.ok(ApiResponse.success("조회 성공", data));
-
-  // 데이터 없음
-  return ResponseEntity.ok(ApiResponse.success("로그아웃 성공"));
-
-  // 생성
-  return ResponseEntity.status(HttpStatus.CREATED)
-      .body(ApiResponse.success("생성 성공", data));
-  ```
+**주의**: PageResponse가 `dto/posts/`와 `dto/follows/`에 중복 정의되어 있음 → `dto/common/`으로 통합 필요
 
 ## 구현 현황
 
 ### 완료
-- 회원가입/로그인/로그아웃
+- 회원가입/로그인/로그아웃 (AuthController, AuthService)
 - 게시글 CRUD (QueryDSL 동적 쿼리 포함)
-- 사용자 CRUD
+- 사용자 CRUD (UserController, UserService)
 - 해시태그 (TagMap을 통한 다대다 관계)
 - 좋아요 CRUD (LikeController, LikeService)
-- 댓글/답글 CRUD (계층형 1-depth)
-
-### 미구현
-- 팔로우 (Follow entity만 존재, 기능 미구현)
+- 댓글/답글 CRUD (CommentController, CommentService)
+- 팔로우/언팔로우 (FollowController, FollowService)
+- 태그 조회 (TagController, TagService)
+- Swagger UI (springdoc-openapi)
 
 ## 구현 가이드
 
@@ -268,131 +258,34 @@ DTOs는 도메인별로 하위 패키지 구성:
 
 ## 알려진 이슈 및 TODO
 
-### 완료된 Critical 이슈
+### Critical
 - [x] **LikeService**: `IllegalArgumentException`, `IllegalStateException` → 커스텀 예외로 변경 완료
 - [x] **AuthService/UserService**: `IllegalArgumentException` → 커스텀 예외로 변경 완료
 - [x] **FollowService**: `IllegalArgumentException` → 커스텀 예외로 변경 완료
-- [x] **User.java**: `BaseEntity` 상속 완료, `@Setter` 제거 완료
-- [x] **UserController**: 권한 검증 완료 (본인만 수정/삭제)
+- [ ] **UserController 보안**: `@AuthenticationPrincipal` 누락 - 아무나 다른 사용자 수정/삭제 가능
+- [ ] **CORS 미설정**: `ProjectSecurityConfig`에 CORS 설정 추가 필요 (허용 도메인: `localhost:3000`)
+- [ ] **Blog.java**: `@Setter` 사용 중 - 제거 필요 (CLAUDE.md 원칙 위반)
+- [ ] **User.java**: Hibernate 시간 어노테이션(`@CurrentTimestamp`, `@UpdateTimestamp`)과 JPA Auditing 충돌 - Hibernate 어노테이션 제거 필요
 
-### Critical (즉시 수정 필요)
+### High Priority
+- [ ] **LikeService @Transactional**: 클래스 레벨 `@Transactional` → `@Transactional(readOnly = true)`로 변경
+- [ ] **LikeController 인증**: GET 메서드에 `@AuthenticationPrincipal(required = false)` 명시 필요
+- [ ] **SecurityConfig 중복**: 동일 엔드포인트 중복 정의 (라인 40-44, 51-59)
+- [ ] **PathVariable 네이밍**: `user_id` (snake_case) vs `postId` (camelCase) 혼용 → camelCase 통일
+- [ ] **FollowService N+1**: getFollowers에서 각 팔로워마다 추가 쿼리 발생 → QueryDSL로 개선
 
-#### 1. CSRF 보호 활성화 (보안)
-- **위치**: `ProjectSecurityConfig.java:36`
-- **문제**: CSRF 완전 비활성화로 세션 기반 인증에서 공격 취약
-- **영향**: 상태 변경 요청(POST, PUT, DELETE)에서 위험
-- **해결**:
-  ```java
-  // 옵션 1: 헤더 기반 CSRF
-  .csrf(csrf -> csrf
-      .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-      .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()))
+### Medium Priority
+- [ ] **CommentService 예외**: NotFoundException, ForbiddenException 정적 팩토리 미사용
+- [ ] **PageResponse 중복**: `dto/posts/`와 `dto/follows/`에 중복 → `dto/common/`으로 통합
+- [ ] **PostController 응답 불일치**: getPosts만 ApiResponse 래핑 없이 반환 → 통일 필요
+- [ ] **User.upDateInfo() 오타**: `upDateInfo` → `updateInfo`로 수정
+- [ ] **TagService null 처리**: `orElse(null)` → `NotFoundException.tag(tagName)` 발생
 
-  // 옵션 2: SPA 연동 시
-  .csrf(csrf -> csrf.ignoringRequestMatchers("/api/v1/auth/**"))
-  ```
-
-#### 2. 민감 정보 환경변수화 (보안)
-- **위치**: `application.yaml:5-7`
-- **문제**: DB 비밀번호 평문 저장, Git 노출 위험
-- **해결**:
-  ```yaml
-  datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/vlog}
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD}
-  ```
-
-#### 3. DDL Auto 환경별 분리 (운영 안정성)
-- **위치**: `application.yaml:12`
-- **문제**: 프로덕션에서 `update` 사용 시 데이터 손실 위험
-- **해결**: `application-prod.yaml`에서 `ddl-auto: validate` 또는 `none` 사용
-
-### High Priority (높은 우선순위)
-
-#### 4. N+1 쿼리 해결 (성능)
-- **위치**: `PostService.java`, Post Entity
-- **문제**: 게시글 목록 조회 시 Blog, TagMap 별도 쿼리 발생
-- **해결**: Fetch Join 추가
-  ```java
-  @Query("SELECT DISTINCT p FROM Post p " +
-         "LEFT JOIN FETCH p.blog b " +
-         "LEFT JOIN FETCH b.user " +
-         "LEFT JOIN FETCH p.tagMapList tm " +
-         "LEFT JOIN FETCH tm.tag")
-  Page<Post> findAllWithAssociations(Pageable pageable);
-  ```
-
-#### 5. 데이터베이스 인덱스 추가 (성능)
-- **위치**: Entity 클래스들
-- **문제**: 자주 조회되는 컬럼에 인덱스 없음
-- **해결**:
-  ```java
-  @Table(name = "posts", indexes = {
-      @Index(name = "idx_blog_id", columnList = "blog_id"),
-      @Index(name = "idx_created_at", columnList = "created_at")
-  })
-
-  @Table(name = "likes", indexes = {
-      @Index(name = "idx_user_post", columnList = "user_id, post_id", unique = true)
-  })
-
-  @Table(name = "comments", indexes = {
-      @Index(name = "idx_post_id", columnList = "post_id"),
-      @Index(name = "idx_parent_id", columnList = "parent_id")
-  })
-  ```
-
-#### 6. 동시성 제어 추가 (데이터 정합성)
-- **위치**: `Post.java:57-66` (like/unlike 메서드)
-- **문제**: 동시 좋아요 클릭 시 count 불일치 가능
-- **해결**:
-  ```java
-  // 옵션 1: @Version 낙관적 락
-  @Version
-  private Long version;
-
-  // 옵션 2: DB 레벨 원자적 연산
-  @Modifying
-  @Query("UPDATE Post p SET p.likeCount = p.likeCount + 1 WHERE p.id = :postId")
-  void incrementLikeCount(@Param("postId") Long postId);
-  ```
-
-#### 7. 트랜잭션 범위 최적화 (성능)
-- **위치**: `UserService.deleteUser()`
-- **문제**: 하나의 큰 트랜잭션으로 성능 저하
-- **해결**: 메서드 분리 및 트랜잭션 전파 설정
-
-### Medium Priority (중간 우선순위)
-
-#### 8. API 경로 표준화
-- **문제**: `/users/{id}` vs `/api/v1/posts/{id}` 불일치
-- **해결**: 모든 엔드포인트를 `/api/v1`로 통일
-
-#### 9. DTO Validation 추가
-- **문제**: Request DTO에 검증 애노테이션 없음
-- **해결**: `@Valid`, `@NotNull`, `@Size` 등 추가
-
-#### 10. 로깅 전략 수립
-- **문제**: 비즈니스 로직에 로깅 없음
-- **해결**: `@Slf4j` 추가 및 주요 지점에 로그 기록
-
-#### 11. 페이징 최적화
-- **문제**: Offset 방식은 대량 데이터에서 성능 저하
-- **해결**: Cursor 기반 페이징 추가 고려
-
-#### 12. Exception 메시지 국제화
-- **문제**: 모든 예외 메시지 한국어 하드코딩
-- **해결**: `messages.properties` 사용
-
-### Low Priority (낮은 우선순위)
-
-#### 13. Soft Delete 지원
-- **해결**: `@SQLDelete`, `@Where` 사용하여 논리 삭제 구현
-
-#### 14. 캐싱 전략 도입
-- **해결**: `@Cacheable`, `@CacheEvict` 사용 (인기 게시글, 태그 목록 등)
-
+### Low Priority
+- [ ] **코드 중복 제거**: User/Post 조회 로직, FollowController PageResponse 구성 중복
+- [ ] **Swagger @Parameter 누락**: 컨트롤러 파라미터에 설명 추가 필요
+- [ ] **삭제 응답 통일**: PostController(204) vs CommentController(200) → 204로 통일
+- [ ] **DDL 운영 모드**: 프로덕션에서 `validate`로 변경 (현재 `update`)
 #### 15. API 버전 관리 전략
 - **해결**: 헤더 기반 버전 관리 또는 URL 분리
 
