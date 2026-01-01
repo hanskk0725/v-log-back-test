@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: ${DB_URL}
+    url: jdbc:mysql://vlog-db.c1miguogu7jm.ap-northeast-2.rds.amazonaws.com:3306/vlog
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
   jpa:
