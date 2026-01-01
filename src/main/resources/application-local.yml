@@ -2,14 +2,14 @@ spring:
   application:
     name: vlog
   datasource:
-#    url: jdbc:mysql://localhost:13306/vlog
+    url: jdbc:mysql://localhost:13306/vlog
     username: root
-    password:
+    password: root
 
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
-      ddl-auto: create
+      ddl-auto: validate
     properties:
       hibernate:
         format_sql: true
