@@ -16,6 +16,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.session.HttpSessionEventPublisher;
+import org.springframework.web.cors.CorsConfiguration;
+
+import java.util.Arrays;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
@@ -35,7 +38,24 @@ public class ProjectSecurityConfig {
         http
                 .csrf(csrf -> csrf.disable());
 
+        // CORS 설정
+        http.cors(cors -> cors.configurationSource(request -> {
+            CorsConfiguration config = new CorsConfiguration();
+            config.setAllowedOrigins(Arrays.asList(
+                "https://v-log.kro.kr",
+                "http://localhost:5173"
+            ));
+            config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+            config.setAllowedHeaders(Arrays.asList("*"));
+            config.setAllowCredentials(true);
+            config.setMaxAge(3600L);
+            return config;
+        }));
+
         http.authorizeHttpRequests(auth -> auth
+                        // 헬스체크
+                        .requestMatchers("/health").permitAll()
+
                         // 인증 X
                         .requestMatchers(HttpMethod.GET,
                                 "/api/v1/users/**", //사용자 조회
